@@ -1,4 +1,3 @@
----
 - name: Create Azure VM (robust playbook - waits for VNet)
   hosts: localhost
   connection: local
