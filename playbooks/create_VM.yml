@@ -21,6 +21,7 @@
     azure_rm_publicipaddress:
       resource_group: myResourceGroup
       allocation_method: Static
+      sku: Standard
       name: myPublicIP
     register: output_ip_address
   - name: Public IP of VM
@@ -61,3 +62,4 @@
         publisher: Canonical
         sku: 22_04-lts
         version: latest
+
