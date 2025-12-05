@@ -1,0 +1,14 @@
+---
+- name: Create Azure Resource Group
+  hosts: localhost
+  connection: local
+  gather_facts: no
+
+  tasks:
+    - name: Create a resource group
+      azure_rm_resourcegroup:
+        name: ResourceGroup_3
+        location: francecentral
+        tags:
+          testing: testing
+          delete: never
