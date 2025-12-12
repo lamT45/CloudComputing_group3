@@ -1,67 +1,62 @@
-- name: Create Azure VM
-  hosts: localhost
-  connection: local
-  tasks:
-  - name: Create resource group
-    azure_rm_resourcegroup:
-      name: myResourceGroup
-      location: francecentral
-  - name: Create virtual network
-    azure_rm_virtualnetwork:
-      resource_group: myResourceGroup
-      name: myVnet
-      address_prefixes: "10.0.0.0/16"
-  - name: Add subnet
-    azure_rm_subnet:
-      resource_group: myResourceGroup
-      name: mySubnet
-      address_prefix: "10.0.1.0/24"
-      virtual_network: myVnet
-  - name: Create public IP address
-    azure_rm_publicipaddress:
-      resource_group: myResourceGroup
-      allocation_method: Static
-      sku: Standard
-      name: myPublicIP
-    register: output_ip_address
-  - name: Public IP of VM
-    debug:
-      msg: "The public IP is {{ output_ip_address.state.ip_address }}."
-  - name: Create Network Security Group that allows SSH
-    azure_rm_securitygroup:
-      resource_group: myResourceGroup
-      name: myNetworkSecurityGroup
-      rules:
-        - name: SSH
-          protocol: Tcp
-          destination_port_range: 22
-          access: Allow
-          priority: 1001
-          direction: Inbound
-  - name: Create virtual network interface card
-    azure_rm_networkinterface:
-      resource_group: myResourceGroup
-      name: myNIC
-      virtual_network: myVnet
-      subnet: mySubnet
-      ip_configurations:
-      - name: ipconfig1
-        public_ip_address_name: myPublicIP
-        primary: true
-      security_group: myNetworkSecurityGroup
-  - name: Create VM
-    azure_rm_virtualmachine:
-      resource_group: myResourceGroup
-      name: myVM
-      vm_size: Standard_B2ats_v2
-      admin_username: azureuser
-      admin_password: 'P@ssw0rd2025!'
-      location: francecentral
-      managed_disk_type: Standard_LRS
-      network_interfaces: myNIC
-      image:
-        offer: ubuntu-24_04-lts
-        publisher: canonical
-        sku: server
-        version: latest
+---
+- name: Deploy 2048 Docker container on Azure VM
+  hosts: all
+  gather_facts: yes
+  become: yes
+  vars:
+    ansible_ssh_pass: "P@ssw0rd2025!"        # ou ansible_ssh_private_key_file si tu utilises une clé
+    docker_image: "evilroot/docker-2048"
+    container_name: "docker-2048"
+    exposed_port: 8080
 
+  tasks:
+    - name: Installer dépendances pour Docker
+      apt:
+        update_cache: yes
+        name:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - gnupg
+          - lsb-release
+        state: present
+
+    - name: Ajouter la clé GPG Docker
+      apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
+
+    - name: Ajouter le repository Docker
+      apt_repository:
+        repo: "deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+        state: present
+
+    - name: Installer Docker et plugins
+      apt:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+          - docker-compose-plugin
+        state: present
+        update_cache: yes
+
+    - name: Ajouter azureuser au groupe docker
+      user:
+        name: azureuser
+        groups: docker
+        append: yes
+
+    - name: Pull de l'image Docker 2048
+      community.docker.docker_image:
+        name: "{{ docker_image }}"
+        source: pull
+
+    - name: Lancer le container Docker 2048
+      community.docker.docker_container:
+        name: "{{ container_name }}"
+        image: "{{ docker_image }}"
+        state: started
+        restart_policy: always
+        published_ports:
+          - "{{ exposed_port }}:80"
