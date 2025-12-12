@@ -57,7 +57,7 @@
       admin_username: azureuser
       admin_password: 'azureuser'
       location: francecentral
-   
+      managed_disk_type: Standard_LRS
       network_interfaces: myNIC
       image:
         offer: ubuntu-24_04-lts
