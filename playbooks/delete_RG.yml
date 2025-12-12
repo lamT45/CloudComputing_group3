@@ -6,5 +6,6 @@
   tasks:
     - name: Delete a resource group
       azure_rm_resourcegroup:
-        name: ResourceGroup_3
+        name: myResourceGroup
+        force_delete_nonempty: true
         state: absent
